@@ -9,6 +9,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Net.Http;
 using System.Web.Http;
+using StoreApp.Repositorys;
+
 
 namespace StoreApp.Tests
 {
@@ -97,6 +99,76 @@ namespace StoreApp.Tests
             Product product = new Product {  Id=3, Name="hu" };
             HttpResponseMessage httpResponse= controller.Post(product);
             Assert.AreEqual("http://localhost/api/simpleProduct/Get/3", httpResponse.Headers.Location.AbsoluteUri, true);
+        }
+        [TestMethod]
+        public void PostSetsLocationHeader_MockVersion()
+        {
+            List<Product> products = GetLocalProducts();
+            SimpleProductController controller = new SimpleProductController(products);
+            controller.Request = new HttpRequestMessage();
+            controller.Configuration = new HttpConfiguration();
+
+            string locationUrl = "http://l/";
+            var mockUrlHelper = new Moq.Mock<System.Web.Http.Routing.UrlHelper>();
+            mockUrlHelper.Setup(x => x.Link(Moq.It.IsAny<string>(), Moq.It.IsAny<object>())).Returns(locationUrl);
+            controller.Url = mockUrlHelper.Object;
+
+            Product product = new Product { Id=4,Name="hahah" };
+            var response = controller.Post(product);
+            Assert.AreEqual(locationUrl, response.Headers.Location.AbsoluteUri);
+        }
+        [TestMethod]
+        public void GetReturnsProductWithSameId()
+        {
+            var mockRepository = new Moq.Mock<IProductRepository>();
+            mockRepository.Setup(x => x.GetById(42)).Returns(new Product { Id = 42, Name = "huolun" });
+            var controller = new Products2Controller(mockRepository.Object);
+            var response=controller.Get(42);
+            var result = response as System.Web.Http.Results.OkNegotiatedContentResult<Product>;
+            Assert.IsNotNull(result);
+            Assert.IsNotNull(result.Content);
+            Assert.AreEqual(42, result.Content.Id);
+        }
+        [TestMethod]
+        public void GetReturnsNotFound()
+        {
+            var mockRepository = new Moq.Mock<IProductRepository>();
+            var controller = new Products2Controller(mockRepository.Object);
+
+            var response = controller.Get(10);
+            Assert.IsInstanceOfType(response, typeof(System.Web.Http.Results.NotFoundResult));
+        }
+        [TestMethod]
+        public void DeleteReturnsOk()
+        {
+            var mockRepository = new Moq.Mock<IProductRepository>();
+            var controller = new Products2Controller(mockRepository.Object);
+
+            var response = controller.Delete(10);
+            Assert.IsInstanceOfType(response, typeof(System.Web.Http.Results.OkResult));
+        }
+        [TestMethod]
+        public void PostRetursProduct()
+        {
+            Moq.Mock<IProductRepository> mockRepository = new Moq.Mock<IProductRepository>();
+            Products2Controller controller = new Products2Controller(mockRepository.Object);
+            Product product = new Product { Id = 1, Name = "keyi" };
+            var result= controller.Post(product) as System.Web.Http.Results.CreatedAtRouteNegotiatedContentResult<Product>;
+            Assert.IsNotNull(result);
+            Assert.IsNotNull(result.Content);
+            Assert.AreEqual(product.Id, result.Content.Id);
+        }
+        [TestMethod]
+        public void PutReturnsProduct()
+        {
+            Moq.Mock<IProductRepository> mockRepository = new Moq.Mock<IProductRepository>();
+            Products2Controller controller = new Products2Controller(mockRepository.Object);
+            Product product = new Product {Id=1,Name="haha" };
+            System.Web.Http.Results.NegotiatedContentResult<Product> result = controller.Put(product) as System.Web.Http.Results.NegotiatedContentResult<Product>;
+            Assert.IsNotNull(result);
+            Assert.AreEqual(result.StatusCode, System.Net.HttpStatusCode.Accepted);
+            Assert.IsNotNull(result.Content);
+            Assert.AreEqual(product.Id, result.Content.Id);
         }
     }
 }
