@@ -169,6 +169,7 @@ namespace StoreApp.Tests
             Assert.AreEqual(result.StatusCode, System.Net.HttpStatusCode.Accepted);
             Assert.IsNotNull(result.Content);
             Assert.AreEqual(product.Id, result.Content.Id);
+
         }
     }
 }
